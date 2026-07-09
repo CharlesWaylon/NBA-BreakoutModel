@@ -1,0 +1,7 @@
+# pulled/scraped data — rebuild locally with pull_data.py / scrape_scouting.py
+data/
+
+__pycache__/
+*.pyc
+.DS_Store
+.claude/
