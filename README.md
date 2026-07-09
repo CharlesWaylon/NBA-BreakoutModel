@@ -99,7 +99,16 @@ python pull_data.py        # pulls & caches all raw data into data/ (~5 min, res
 python scrape_scouting.py  # optional: scouting text from NBADraft.net (~6 min)
 python leap_model.py       # backtest: trains, evaluates on holdout, writes rankings
 python score_current.py    # the live board: scores current-era bench players
+
+python player_report.py "isaiah joe"   # look up any scored player by name
 ```
+
+The player lookup prints a full report: breakout score and percentile, a sample-size
+confidence tier (how many NBA + G-League minutes back the numbers), analytical
+strengths and weaknesses (the SHAP factors pushing the score up or down, each shown
+with the underlying stat and its percentile in the universe), and the 8 nearest
+historical comps with their real outcome rate. Fuzzy name matching included; the first
+run builds a cache, lookups after that are instant (`--rebuild` after refreshing data).
 
 | File | What it does |
 |---|---|
@@ -107,6 +116,7 @@ python score_current.py    # the live board: scores current-era bench players
 | `college_translation.py` | The college→NBA ridge translation. Runnable standalone to see the fit. |
 | `scrape_scouting.py` | Scouting text scrape + NLP features (kept for context columns despite the negative result). |
 | `leap_model.py` | Universe, labels, features, archetypes, XGBoost + SHAP, comps, backtest → `data/holdout_rankings.csv` |
+| `player_report.py` | Name-lookup interface: score, confidence tier, analytical strengths/weaknesses, comps for any scored player |
 | `score_current.py` | Scores unlabeled 2022–25 debuts with the model trained on all 328 labeled players → `data/current_board.csv`. Includes a second, flagged pool: **"fallen angels"** — players who got early circumstantial minutes (12–18 MPG in years 1–2) and have been buried since. Historically they break out at 6.7% vs 11.6% for the true end-of-bench pool (but that 6.7% includes Dejounte Murray). |
 
 Output rows include: score, percentile, archetype, pedigree tag, SHAP reasons, the 8
@@ -135,5 +145,11 @@ comps and their breakout rate, and sample-size context (minutes played).
 - Team-context weighting of early minutes (minutes on a 25-win team ≠ minutes on a
   contender) — would separate true "circumstantial minutes" fallen angels from players
   who earned a look and lost it
+- Qualitative analysis done right: draft reports, beat-writer coverage, and
+  intangibles reporting (work ethic, coachability, role acceptance) as structured
+  inputs on player tendency to break out. The first NLP attempt (pre-draft
+  strengths/weaknesses boilerplate) didn't carry signal, but richer qualitative
+  sources — reporting on how a player is developing *after* reaching the league —
+  remain the most scout-like information the model doesn't yet see
 - Draft big-board ranks as consensus-vs-model context on the current board
   (`score_current.py` already has the merge slot: `data/athletic_boards.csv`)
