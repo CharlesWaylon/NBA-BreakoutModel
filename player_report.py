@@ -121,15 +121,20 @@ def report(query):
           f"(p{(allp['PROB'] < r['PROB']).mean() * 100:.0f} of all scored players)")
     print(f"confidence: {tier} — {detail}")
 
+    # lower-is-better stats where a "low value favors" note would be noise
+    INVERTED = {"PICK", "LANE_AGILITY_TIME", "THREE_QUARTER_SPRINT", "TOV36",
+                "GLG_TOV36", "PROJ_TOV36", "AGE", "COLLEGE_AGE"}
+
     def line(f):
         val, pct = r[f], (allp[f] < r[f]).mean() * 100
         v = f"{val:.2f}" if abs(val) < 10 else f"{val:.0f}"
         # a low stat can push the score UP (e.g. low weight on a shooter) — say so
         note = ""
-        if s[f] > 0 and pct < 40:
-            note = "  — low value favors this profile"
-        elif s[f] < 0 and pct > 60:
-            note = "  — high value hurts this profile"
+        if f not in INVERTED:
+            if s[f] > 0 and pct < 40:
+                note = "  — low value favors this profile"
+            elif s[f] < 0 and pct > 60:
+                note = "  — high value hurts this profile"
         return f"  {LABELS.get(f, f):34s} {v:>7s}  (p{pct:.0f} of universe){note}"
 
     order = s.abs().sort_values(ascending=False).index
