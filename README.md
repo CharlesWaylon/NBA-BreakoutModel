@@ -98,6 +98,20 @@ What the model learned to weight, in scout language: *efficient in his minutes, 
 or protects the rim, young for the level, productive in the bigger G-League sample.*
 Nobody told it that; it's what survives contact with 14 years of outcomes.
 
+**The pre-NBA signals model** (`pre_nba.py`) is the same universe and labels with the
+NBA-sample features removed — trained only on what exists before a player logs an NBA
+minute (college translation, G-League, combine, age, pedigree). It holds a **0.650
+holdout AUC on its own**, which quantifies something useful: roughly half the model's
+edge over a coin flip exists before the NBA ever sees the player. Its SHAP values
+broken out by archetype (`data/archetype_signals.csv`) answer "which pre-NBA stats
+predict NBA success for which player types" — G-League scoring and stocks plus college
+BPM carry every archetype; for guards, *lower* G-League assist rates favor breakout
+(the score-first shooter path travels better than pure playmaking); lighter and younger
+wins everywhere. It also powers the `player_report` fallback: querying a player with no
+NBA minutes (G-League-only, draft-and-stash) returns his pre-NBA signal profile instead
+of nothing — clearly labeled as a signal readout, not a prospect grade, with the 0.2%
+G-League-only base rate stated up front.
+
 ## Running it
 
 ```bash
@@ -109,6 +123,8 @@ python leap_model.py       # backtest: trains, evaluates on holdout, writes rank
 python score_current.py    # the live board: scores current-era bench players
 
 python player_report.py "isaiah joe"   # look up any scored player by name
+python pre_nba.py                      # which pre-NBA stats drive breakouts, by archetype
+python pre_nba.py "jaden akins"        # signal profile for a player with no NBA minutes
 ```
 
 The player lookup prints a full report: breakout score and percentile, a sample-size
@@ -124,7 +140,8 @@ run builds a cache, lookups after that are instant (`--rebuild` after refreshing
 | `college_translation.py` | The college→NBA ridge translation. Runnable standalone to see the fit. |
 | `scrape_scouting.py` | Scouting text scrape + NLP features (kept for context columns despite the negative result). |
 | `leap_model.py` | Universe, labels, features, archetypes, XGBoost + SHAP, comps, backtest → `data/holdout_rankings.csv` |
-| `player_report.py` | Name-lookup interface: score, confidence tier, analytical strengths/weaknesses, comps for any scored player |
+| `player_report.py` | Name-lookup interface: score, confidence tier, analytical strengths/weaknesses, comps for any scored player; falls back to the pre-NBA profile for players with no NBA minutes |
+| `pre_nba.py` | Pre-NBA signals model: archetype signal table + signal profiles for G-League-only / no-NBA players |
 | `score_current.py` | Scores unlabeled 2022–25 debuts with the model trained on all 328 labeled players → `data/current_board.csv`. Includes a second, flagged pool: **"fallen angels"** — players who got early circumstantial minutes (12–18 MPG in years 1–2) and have been buried since. Historically they break out at 6.7% vs 11.6% for the true end-of-bench pool (but that 6.7% includes Dejounte Murray). |
 
 Output rows include: score, percentile, archetype, pedigree tag, SHAP reasons, the 8
@@ -142,6 +159,14 @@ comps and their breakout rate, and sample-size context (minutes played).
 - Garbage-time minutes aren't filtered (shrinkage partially compensates).
 - In the fallen-angel pool, "0 MPG now" can't distinguish *buried* from *out of the
   league* or *retired* — read those rows with that in mind.
+- **G-League-only players are out of universe by design.** The clock starts at a
+  player's first NBA appearance; a two-way player with a full G-League season but
+  zero NBA minutes isn't scored. This was measured, not assumed: 1,365 players since
+  2008 went G-League-first with no NBA minutes in their first two pro years, and
+  3 of them (0.2%) broke out. The call-up itself is the league's screening signal —
+  a player enters the universe (and gets scored) the moment he logs one NBA minute.
+  In the meantime, `player_report` falls back to his pre-NBA signal profile
+  (see the pre-NBA signals model above).
 - Data comes from public endpoints (stats.nba.com via `nba_api`, barttorvik.com,
   nbadraft.net) pulled politely with caching. `data/` is not committed — run
   `pull_data.py` to rebuild it locally.

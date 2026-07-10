@@ -98,19 +98,28 @@ def report(query):
     sv = pd.read_csv(SHAPVALS)
 
     keys = allp["PLAYER_NAME"].str.lower().tolist()
-    match = get_close_matches(query.lower(), keys, n=1, cutoff=0.6)
     contains = allp[allp["PLAYER_NAME"].str.lower().str.contains(query.lower())]
-    if not match and contains.empty:
-        print(f'no match for "{query}" among {len(allp)} scored players.\n'
-              "note: only end-of-bench profiles are scored — established players\n"
-              "and pre-2008 debuts are out of universe by design.")
-        return
-    i = contains.index[0] if not contains.empty else keys.index(match[0])
+    if contains.empty:
+        # not a scored NBA player — check pre-NBA sources before fuzzy-guessing,
+        # so a G-League-only or draft-and-stash player gets his signal profile
+        import pre_nba
+        row, display, _ = pre_nba.build_row(query)
+        if row is not None:
+            print(f"{display} has no NBA minutes yet — out of the main universe.\n"
+                  "Falling back to the pre-NBA signals model:\n")
+            pre_nba.report(query)
+            return
+        match = get_close_matches(query.lower(), keys, n=1, cutoff=0.6)
+        if not match:
+            print(f'no match for "{query}" in NBA, G-League, or college data.\n'
+                  "note: established players and pre-2008 debuts are out of "
+                  "universe by design.")
+            return
+        print(f'(no exact match for "{query}" — closest scored player shown)\n')
+        i = keys.index(match[0])
+    else:
+        i = contains.index[0]
     r, s = allp.loc[i], sv.loc[i]
-
-    if query.lower() not in r["PLAYER_NAME"].lower():
-        print(f'(no exact match for "{query}" — closest scored player shown; '
-              "established players are out of universe by design)\n")
     print(f"=== BREAKOUT REPORT: {r['PLAYER_NAME']} ===")
     print(f"{int(r['COHORT'])} debut | {r['ARCHETYPE']} | {r['PEDIGREE']} | "
           f"age {r['AGE']:.0f} at debut | pool: {r['POOL']}")
