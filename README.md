@@ -12,10 +12,12 @@ flip on a holdout of players the model never saw.** It clears that bar comfortab
 ## The question, operationalized
 
 - **Universe:** every player who debuted between 2008 and 2021, was 25 or younger at
-  debut, and averaged **under 12 minutes per game across his first two seasons**
-  (328 players).
+  debut, and never got a real early opportunity: **under 12 MPG across his first two
+  seasons, or under 500 total minutes regardless of rate** (398 players). The volume
+  clause matters — a two-way player with six 35-minute emergency starts has a high
+  "MPG" but has not been given a shot.
 - **Label:** did he reach **20+ MPG (30+ games) in his 4th or 5th season?**
-  38 of 328 did (11.6%). 62% were out of the league entirely by then.
+  39 of 398 did (9.8%). Most of the rest were out of the league entirely by then.
 - **Backtest:** train on the 2008–2018 debut cohorts, test blind on 2019–2021.
 
 **The "fallen angel" edge case.** A minutes-based universe has a blind spot: the player
@@ -36,7 +38,12 @@ opportunity story is different, and the label would mean something different for
 | Coin flip | 0.500 |
 | NBA stats only | 0.718 |
 | + college-to-NBA translation | 0.746 |
-| **+ G-League stats (final)** | **0.791** |
+| + G-League stats | 0.791 |
+| **+ volume-aware universe (final)** | **0.782** |
+
+(The last row widened the universe from 328 to 398 players to include the
+high-MPG-tiny-sample cameo cases; the small AUC dip is the cost of scoring 70 more
+players the old filter wrongly treated as "already given a shot.")
 
 All 8 actual breakouts in the 105-player holdout rank in the model's top half; the #1
 overall flag (Isaiah Joe) hit. Precision in the top 10 runs ~2.5–3x the base rate.
@@ -79,7 +86,8 @@ the negative results are kept in the code as comments so they don't get re-tried
 **Archetypes:** KMeans (k=4) on style and size — big / guard / shooting wing /
 non-shooting wing. Not fed to the classifier; used to constrain comps and as an
 analytical lens. Sharpest single insight in the project: end-of-bench **bigs break out
-at 16%, non-shooting wings at 6%**. The tweener with no jumper really is a dead end.
+at ~3x the rate of non-shooting wings (14% vs 5%)**. The tweener with no jumper really
+is a dead end.
 
 **Pedigree flag:** every output row is tagged lottery pick / first-rounder /
 second-rounder / undrafted. The model's purpose is finding *under-the-radar* players —

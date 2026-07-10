@@ -83,7 +83,9 @@ def build_dataset(tot, comb, draft, glg):
         d = g["DEBUT"].iloc[0]
         y12 = g[g["YR"].isin([d, d + 1])]
         mins, gp = y12["MIN"].sum(), y12["GP"].sum()
-        if mins < 40 or gp == 0 or mins / gp >= MPG_BENCH:
+        # "already got his shot" needs rate AND volume: 36 mpg over a 6-game
+        # cameo is not an opportunity (75 such players were wrongly excluded)
+        if mins < 40 or gp == 0 or (mins / gp >= MPG_BENCH and mins >= 500):
             continue
         y45 = g[g["YR"].isin([d + 3, d + 4])]
         broke = ((y45["MIN"] / y45["GP"] >= MPG_BREAKOUT) & (y45["GP"] >= GP_BREAKOUT)).any()

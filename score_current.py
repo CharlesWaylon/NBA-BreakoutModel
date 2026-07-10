@@ -36,7 +36,9 @@ def build():
     current = current.join((last["LMIN"] / last["LGP"]).rename("LATEST_MPG"),
                            on="PLAYER_ID")
     current["LATEST_MPG"] = current["LATEST_MPG"].fillna(0)
-    current["POOL"] = np.where(current["MPG12"] < 12, "end-of-bench",
+    # cameo volume (< 500 min) is end-of-bench no matter the per-game rate
+    current["POOL"] = np.where((current["MPG12"] < 12) | (current["MIN12"] < 500),
+                      "end-of-bench",
                       np.where(current["LATEST_MPG"] < 10, "fallen angel", "drop"))
     current = current[current["POOL"] != "drop"]  # 12-18 mpg AND still playing = just a rotation guy
 
