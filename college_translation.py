@@ -103,7 +103,7 @@ def fit_translation(verbose=True):
 def college_features(names_cohorts):
     """PROJ_* translated per-36 projections + raw college signal, merged onto
     a df with PLAYER_NAME and COHORT. NaN where no college match."""
-    models = fit_translation()
+    models = fit_translation(verbose=False)
     out = match_college(names_cohorts)
     matched = out["bpm"].notna()
     for tgt, pipe in models.items():

@@ -91,6 +91,28 @@ def confidence(r):
     return tier, ", ".join(parts)
 
 
+def explain_exclusion(hit):
+    """Player exists in NBA data but isn't in the scored universe — say why."""
+    hit = hit[hit["PLAYER_NAME"] == hit["PLAYER_NAME"].iloc[0]].copy()
+    name = hit["PLAYER_NAME"].iloc[0]
+    hit["YR"] = hit["SEASON"].str[:4].astype(int)
+    d = hit["YR"].min()
+    y12 = hit[hit["YR"] <= d + 1]
+    mins, gp, age = y12["MIN"].sum(), y12["GP"].sum(), y12["AGE"].iloc[0]
+    print(f"{name} is in the NBA data ({d}-{str(d + 1)[-2:]} debut, {mins:.0f} min "
+          f"at {mins / gp:.1f} MPG over his first two seasons) but isn't scored:")
+    if d < 2008:
+        print("  debuted before the 2008 cohort window — established player.")
+    elif age > 25:
+        print(f"  age {age:.0f} at debut, over the <= 25 cohort limit.")
+    elif mins / gp >= 12 and mins >= 500:
+        print("  he already got a real early opportunity (12+ MPG on 500+ minutes).")
+        print("  The model only scores end-of-bench players still waiting for one —")
+        print("  a rotation-level rookie is not an under-the-radar case, by design.")
+    else:
+        print("  likely newer than the caches — rerun: python player_report.py --rebuild")
+
+
 def report(query):
     if not UNIVERSE.exists():
         build_cache()
@@ -100,7 +122,15 @@ def report(query):
     keys = allp["PLAYER_NAME"].str.lower().tolist()
     contains = allp[allp["PLAYER_NAME"].str.lower().str.contains(query.lower())]
     if contains.empty:
-        # not a scored NBA player — check pre-NBA sources before fuzzy-guessing,
+        # in the NBA data but not scored? explain the exclusion honestly
+        # (rotation player, established vet, too old at debut) — don't claim
+        # "no NBA minutes" for a guy who plays 20 a night
+        nba = pd.read_csv(lm.DATA / "season_totals.csv")
+        hit = nba[nba["PLAYER_NAME"].str.lower().str.contains(query.lower())]
+        if len(hit):
+            explain_exclusion(hit)
+            return
+        # truly no NBA minutes — check pre-NBA sources before fuzzy-guessing,
         # so a G-League-only or draft-and-stash player gets his signal profile
         import pre_nba
         row, display, _ = pre_nba.build_row(query)
